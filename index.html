@@ -115,12 +115,14 @@ h1 small { display:block; font-size:11px; font-weight:400; color:var(--text2); m
   <div class="card">
     <div class="card-title">📊 计算结果</div>
     <div class="result-grid" id="resultsGrid">
+      <div class="result-item"><div class="label">自动大球下注</div><div class="value" id="rOverBetDisp">—</div></div>
       <div class="result-item"><div class="label">自动小球下注</div><div class="value" id="rUnderBet">—</div></div>
       <div class="result-item"><div class="label">总流水</div><div class="value" id="rTotal">—</div></div>
       <div class="result-item"><div class="label">返点现金</div><div class="value" id="rRebate">—</div></div>
       <div class="result-item"><div class="label">大球赢利润</div><div class="value" id="rOverProfit">—</div></div>
       <div class="result-item"><div class="label">小球赢利润</div><div class="value" id="rUnderProfit">—</div></div>
       <div class="result-item"><div class="label">ROI</div><div class="value" id="rROI">—</div></div>
+      <div class="result-item"><div class="label">利润差(完美=0)</div><div class="value" id="rProfitDiff">—</div></div>
     </div>
 
     <div class="kpi-row">
@@ -201,6 +203,8 @@ function calculate() {
   const profitDiff = Math.abs(overProfit - underProfit);
 
   // Update results
+  document.getElementById('rOverBetDisp').textContent = fmt(overBet);
+  document.getElementById('rOverBetDisp').className = 'value';
   document.getElementById('rUnderBet').textContent = fmt(underBet);
   document.getElementById('rUnderBet').className = 'value';
   document.getElementById('rTotal').textContent = fmt(total);
@@ -217,6 +221,11 @@ function calculate() {
   const roiEl = document.getElementById('rROI');
   roiEl.textContent = fmtPct(roi);
   roiEl.className = 'value ' + (roi >= 0 ? 'green' : 'red');
+
+  // Profit difference
+  const pdEl = document.getElementById('rProfitDiff');
+  pdEl.textContent = fmt(profitDiff, 4);
+  pdEl.className = 'value ' + (profitDiff < 0.01 ? 'green' : 'yellow');
 
   // Status
   const statusEl = document.getElementById('rStatus');
