@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>大小球对冲计算器</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root { --bg: #1a1a2e; --card: #16213e; --card2: #0f3460; --green: #00b894; --green-dim: #006c5a; --red: #e17055; --yellow: #fdcb6e; --text: #dfe6e9; --text2: #b2bec3; --input-bg: #0d1b2a; --input-border: #2d3436; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:12px; padding-bottom:80px; }
+.container { max-width:480px; margin:0 auto; }
+h1 { font-size:20px; font-weight:700; text-align:center; padding:16px 0 8px; color:var(--green); letter-spacing:0.5px; }
+h1 small { display:block; font-size:11px; font-weight:400; color:var(--text2); margin-top:2px; }
+.card { background:var(--card); border-radius:12px; padding:14px; margin-bottom:10px; box-shadow:0 4px 12px rgba(0,0,0,.25); }
+.card-title { font-size:13px; font-weight:600; color:var(--green); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.card-title .badge { font-size:10px; background:var(--card2); padding:2px 8px; border-radius:4px; color:var(--text2); font-weight:400; }
+.input-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+.input-row label { font-size:12px; color:var(--text2); min-width:70px; flex-shrink:0; }
+.input-row input { flex:1; background:var(--input-bg); border:1px solid var(--input-border); border-radius:8px; padding:10px 12px; font-size:15px; color:var(--text); outline:none; transition:border .2s; }
+.input-row input:focus { border-color:var(--green); }
+.input-row input.green-input { border-color:var(--green-dim); }
+.input-row .hint { font-size:10px; color:var(--text2); min-width:40px; text-align:right; }
+.result-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.result-item { background:var(--card2); border-radius:8px; padding:10px; text-align:center; }
+.result-item .label { font-size:10px; color:var(--text2); margin-bottom:3px; }
+.result-item .value { font-size:16px; font-weight:700; }
+.result-item .value.green { color:var(--green); }
+.result-item .value.red { color:var(--red); }
+.result-item .value.yellow { color:var(--yellow); }
+.result-item.full { grid-column:1/-1; }
+.status-badge { display:inline-block; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600; }
+.status-badge.ok { background:var(--green); color:#fff; }
+.status-badge.fail { background:var(--red); color:#fff; }
+.status-badge.warn { background:var(--yellow); color:#1a1a2e; }
+.odds-table { width:100%; border-collapse:collapse; font-size:11px; margin-top:6px; }
+.odds-table th { background:var(--card2); color:var(--text2); padding:6px 4px; text-align:center; font-weight:500; }
+.odds-table td { padding:5px 4px; text-align:center; border-bottom:1px solid rgba(255,255,255,.05); }
+.odds-table tr:nth-child(even) td { background:rgba(255,255,255,.02); }
+.odds-table .green { color:var(--green); }
+.odds-table .red { color:var(--red); }
+.input-group { margin-bottom:6px; }
+.mode-switch { display:flex; gap:8px; margin-bottom:10px; }
+.mode-switch button { flex:1; padding:8px; border:1px solid var(--input-border); border-radius:8px; background:var(--input-bg); color:var(--text2); font-size:12px; cursor:pointer; transition:all .2s; }
+.mode-switch button.active { border-color:var(--green); color:var(--green); background:rgba(0,184,148,.1); }
+.mode-switch button:active { transform:scale(.97); }
+.hidden { display:none !important; }
+.kpi-row { display:flex; gap:6px; margin-top:8px; }
+.kpi-item { flex:1; background:var(--card2); border-radius:8px; padding:8px; text-align:center; }
+.kpi-item .num { font-size:14px; font-weight:700; display:block; }
+.kpi-item .lbl { font-size:9px; color:var(--text2); }
+.calc-note { font-size:10px; color:var(--text2); text-align:center; padding:6px 0 2px; border-top:1px solid rgba(255,255,255,.05); margin-top:6px; }
+.footer { text-align:center; font-size:10px; color:var(--text2); padding:16px 0; }
+@media (max-width:380px) {
+  .result-grid { grid-template-columns:1fr; }
+  .input-row { flex-wrap:wrap; }
+  .input-row label { min-width:60px; font-size:11px; }
+}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <h1>⚽ 大小球对冲计算器<small>流水返点版 · 修改即自动计算</small></h1>
+
+  <!-- INPUTS -->
+  <div class="card">
+    <div class="card-title">📥 赔率与返点</div>
+    <div class="input-row">
+      <label>大球赔率</label>
+      <input class="green-input" type="number" id="overOdds" value="0.79" step="0.01" min="0.01">
+      <span class="hint">HK赔率</span>
+    </div>
+    <div class="input-row">
+      <label>小球赔率</label>
+      <input class="green-input" type="number" id="underOdds" value="1.13" step="0.01" min="0.01">
+      <span class="hint">HK赔率</span>
+    </div>
+    <div class="input-row">
+      <label>返点率(%)</label>
+      <input class="green-input" type="number" id="rebateRate" value="3.0" step="0.1" min="0">
+      <span class="hint">关键</span>
+    </div>
+  </div>
+
+  <!-- MODE SWITCH -->
+  <div class="card">
+    <div class="card-title">📐 计算方式 <span class="badge">选一种填</span></div>
+    <div class="mode-switch">
+      <button id="modeA" class="active" onclick="setMode('A')">输入大球金额</button>
+      <button id="modeB" onclick="setMode('B')">输入总预算</button>
+    </div>
+
+    <div id="sectionA">
+      <div class="input-row">
+        <label>大球下注</label>
+        <input class="green-input" type="number" id="overBet" value="12000" step="100" min="0">
+        <span class="hint">元</span>
+      </div>
+    </div>
+    <div id="sectionB" class="hidden">
+      <div class="input-row">
+        <label>总预算</label>
+        <input class="green-input" type="number" id="totalBudget" value="30000" step="100" min="0">
+        <span class="hint">元</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card">
+    <div class="card-title">📊 计算结果</div>
+    <div class="result-grid" id="resultsGrid">
+      <div class="result-item"><div class="label">自动小球下注</div><div class="value" id="rUnderBet">—</div></div>
+      <div class="result-item"><div class="label">总流水</div><div class="value" id="rTotal">—</div></div>
+      <div class="result-item"><div class="label">返点现金</div><div class="value" id="rRebate">—</div></div>
+      <div class="result-item"><div class="label">大球赢利润</div><div class="value" id="rOverProfit">—</div></div>
+      <div class="result-item"><div class="label">小球赢利润</div><div class="value" id="rUnderProfit">—</div></div>
+      <div class="result-item"><div class="label">ROI</div><div class="value" id="rROI">—</div></div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-item"><span class="num" id="rStatus">—</span><span class="lbl">判定</span></div>
+      <div class="kpi-item"><span class="num" id="rCritical">—</span><span class="lbl">临界返点率</span></div>
+      <div class="kpi-item"><span class="num" id="rMargin">—</span><span class="lbl">庄家水钱</span></div>
+    </div>
+  </div>
+
+  <!-- ODDS TABLE -->
+  <div class="card">
+    <div class="card-title">🎯 推荐赔率组合</div>
+    <table class="odds-table">
+      <thead><tr>
+        <th>大球</th><th>小球</th><th>水钱</th><th>临界返点</th><th>判定</th><th>ROI</th>
+      </tr></thead>
+      <tbody id="oddsTableBody"></tbody>
+    </table>
+    <div class="calc-note">基于大球下注12,000 · 返点率动态计算</div>
+  </div>
+
+  <div class="footer">
+    v2.1 PWA · 修改绿色输入格即自动计算
+  </div>
+</div>
+
+<script>
+// ====== STATE ======
+let currentMode = 'A';
+
+// ====== ODDS PAIRS ======
+const oddsPairs = [
+  {o:0.70, u:1.30}, {o:0.75, u:1.20}, {o:0.79, u:1.13}, {o:0.82, u:1.08},
+  {o:0.85, u:1.05}, {o:0.88, u:1.02}, {o:0.90, u:1.00}, {o:0.95, u:0.95}
+];
+
+// ====== HELPERS ======
+function fmt(n, d=2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return Number(n).toLocaleString('zh-CN', {minimumFractionDigits:d, maximumFractionDigits:d});
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—%';
+  return n.toFixed(2) + '%';
+}
+
+// ====== CORE CALC ======
+function calculate() {
+  const oOdds = parseFloat(document.getElementById('overOdds').value) || 0;
+  const uOdds = parseFloat(document.getElementById('underOdds').value) || 0;
+  const rPct = parseFloat(document.getElementById('rebateRate').value) || 0;
+  const rRate = rPct / 100;
+
+  if (oOdds <= 0 || uOdds <= 0) return;
+
+  const k = (oOdds + 1) / (uOdds + 1);
+  let overBet, underBet, totalBudget;
+
+  if (currentMode === 'A') {
+    overBet = parseFloat(document.getElementById('overBet').value) || 0;
+    underBet = overBet * k;
+    totalBudget = overBet + underBet;
+  } else {
+    totalBudget = parseFloat(document.getElementById('totalBudget').value) || 0;
+    overBet = totalBudget / (1 + k);
+    underBet = totalBudget - overBet;
+  }
+
+  const total = overBet + underBet;
+  const rebate = total * rRate;
+  const overProfit = overBet * oOdds + rebate - underBet;
+  const underProfit = underBet * uOdds + rebate - overBet;
+  const roi = total > 0 ? (overProfit / total) * 100 : 0;
+  const criticalR = ((k - oOdds) / (1 + k)) * 100;
+  const margin = (1/(oOdds+1) + 1/(uOdds+1) - 1) * 100;
+  const canProfit = rPct > criticalR;
+  const profitDiff = Math.abs(overProfit - underProfit);
+
+  // Update results
+  document.getElementById('rUnderBet').textContent = fmt(underBet);
+  document.getElementById('rUnderBet').className = 'value';
+  document.getElementById('rTotal').textContent = fmt(total);
+  document.getElementById('rRebate').textContent = fmt(rebate);
+  
+  const opEl = document.getElementById('rOverProfit');
+  opEl.textContent = fmt(overProfit);
+  opEl.className = 'value ' + (overProfit >= 0 ? 'green' : 'red');
+  
+  const upEl = document.getElementById('rUnderProfit');
+  upEl.textContent = fmt(underProfit);
+  upEl.className = 'value ' + (underProfit >= 0 ? 'green' : 'red');
+  
+  const roiEl = document.getElementById('rROI');
+  roiEl.textContent = fmtPct(roi);
+  roiEl.className = 'value ' + (roi >= 0 ? 'green' : 'red');
+
+  // Status
+  const statusEl = document.getElementById('rStatus');
+  if (overBet <= 0) {
+    statusEl.textContent = '请输入金额';
+    statusEl.className = 'num warn';
+  } else if (canProfit) {
+    statusEl.textContent = '✅ 可盈利';
+    statusEl.className = 'num green';
+  } else {
+    statusEl.textContent = '❌ 会亏损';
+    statusEl.className = 'num red';
+  }
+
+  const critEl = document.getElementById('rCritical');
+  critEl.textContent = fmtPct(criticalR);
+  critEl.className = 'num ' + (canProfit ? 'green' : 'red');
+  
+  document.getElementById('rMargin').textContent = fmtPct(margin);
+}
+
+// ====== ODDS TABLE ======
+function renderOddsTable() {
+  const rebatePct = parseFloat(document.getElementById('rebateRate').value) || 3;
+  const tbody = document.getElementById('oddsTableBody');
+  tbody.innerHTML = '';
+  
+  oddsPairs.forEach(p => {
+    const k = (p.o + 1) / (p.u + 1);
+    const margin = (1/(p.o+1) + 1/(p.u+1) - 1) * 100;
+    const critical = ((k - p.o) / (1 + k)) * 100;
+    const canDo = rebatePct > critical;
+    
+    // ROI for this pair at current rebate rate
+    const O = 12000;
+    const U = O * k;
+    const T = O + U;
+    const roi = (O * p.o + T * rebatePct/100 - U) / T * 100;
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.o.toFixed(2)}</td>
+      <td>${p.u.toFixed(2)}</td>
+      <td>${margin.toFixed(2)}%</td>
+      <td>${critical.toFixed(2)}%</td>
+      <td class="${canDo ? 'green' : 'red'}">${canDo ? '✅可做' : '❌不做'}</td>
+      <td class="${roi > 0 ? 'green' : 'red'}">${roi.toFixed(3)}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ====== MODE SWITCH ======
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeA').className = mode === 'A' ? 'active' : '';
+  document.getElementById('modeB').className = mode === 'B' ? 'active' : '';
+  document.getElementById('sectionA').className = mode === 'A' ? '' : 'hidden';
+  document.getElementById('sectionB').className = mode === 'B' ? '' : 'hidden';
+  calculate();
+}
+
+// ====== BIND EVENTS ======
+document.querySelectorAll('input').forEach(el => {
+  el.addEventListener('input', () => { calculate(); renderOddsTable(); });
+});
+
+// ====== PWA: SERVICE WORKER ======
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+// ====== INIT ======
+calculate();
+renderOddsTable();
+</script>
+</body>
+</html>
