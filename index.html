@@ -122,7 +122,7 @@ h1 small { display:block; font-size:11px; font-weight:400; color:var(--text2); m
       <div class="result-item"><div class="label">大球赢利润</div><div class="value" id="rOverProfit">—</div></div>
       <div class="result-item"><div class="label">小球赢利润</div><div class="value" id="rUnderProfit">—</div></div>
       <div class="result-item"><div class="label">ROI</div><div class="value" id="rROI">—</div></div>
-      <div class="result-item"><div class="label">利润差(完美=0)</div><div class="value" id="rProfitDiff">—</div></div>
+      <div class="result-item"><div class="label">每万元流水盈利</div><div class="value" id="rPer10k">—</div></div>
     </div>
 
     <div class="kpi-row">
@@ -222,10 +222,11 @@ function calculate() {
   roiEl.textContent = fmtPct(roi);
   roiEl.className = 'value ' + (roi >= 0 ? 'green' : 'red');
 
-  // Profit difference
-  const pdEl = document.getElementById('rProfitDiff');
-  pdEl.textContent = fmt(profitDiff, 4);
-  pdEl.className = 'value ' + (profitDiff < 0.01 ? 'green' : 'yellow');
+  // 每万元流水盈利
+  const per10k = total > 0 ? (overProfit / (total / 10000)) : 0;
+  const p10kEl = document.getElementById('rPer10k');
+  p10kEl.textContent = fmt(per10k) + ' 元';
+  p10kEl.className = 'value ' + (per10k >= 0 ? 'green' : 'red');
 
   // Status
   const statusEl = document.getElementById('rStatus');
