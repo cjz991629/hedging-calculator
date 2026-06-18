@@ -61,9 +61,36 @@ h1 small { display:block; font-size:11px; font-weight:400; color:var(--text2); m
   .input-row { flex-wrap:wrap; }
   .input-row label { min-width:60px; font-size:11px; }
 }
+/* Password overlay */
+#passwordOverlay {
+  position:fixed; top:0; left:0; right:0; bottom:0; background:#1a1a2e; z-index:9999;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; padding:24px;
+}
+#passwordOverlay .lock-icon{font-size:48px;margin-bottom:12px;}
+#passwordOverlay h2{color:#00b894;font-size:18px;margin-bottom:4px;}
+#passwordOverlay p{color:#b2bec3;font-size:12px;margin-bottom:20px;}
+#passwordOverlay input{
+  width:100%;max-width:280px;padding:12px 16px;background:#0d1b2a;
+  border:1px solid #006c5a;border-radius:8px;color:#dfe6e9;
+  font-size:16px;text-align:center;outline:none;margin-bottom:12px;
+}
+#passwordOverlay input:focus{border-color:#00b894;}
+#passwordOverlay button{
+  width:100%;max-width:280px;padding:12px;background:#00b894;
+  border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;
+}
+#passwordOverlay .error{color:#e17055;font-size:12px;margin-top:8px;display:none;}
 </style>
 </head>
 <body>
+<div id="passwordOverlay">
+  <div class="lock-icon">🔒</div>
+  <h2>对冲套利计算器</h2>
+  <p>请输入密码使用</p>
+  <input type="password" id="pwInput" placeholder="密码" autocomplete="off">
+  <button onclick="checkPassword()">进入</button>
+  <div class="error" id="pwError">密码错误，请重试</div>
+</div>
 <div class="container" id="app">
   <h1>⚽ 大小球对冲计算器<small>流水返点版 · 修改即自动计算</small></h1>
 
@@ -292,6 +319,37 @@ function setMode(mode) {
 // ====== BIND EVENTS ======
 document.querySelectorAll('input').forEach(el => {
   el.addEventListener('input', () => { calculate(); renderOddsTable(); });
+});
+
+// ====== PASSWORD LOCK ======
+// 密码: hgc2026  (九哥可以改下面 PASSWORD 这个字符串，改完重新部署)
+const PASSWORD = 'hgc2026';
+
+function checkPassword() {
+  const input = document.getElementById('pwInput').value;
+  if (input === PASSWORD) {
+    unlock();
+  } else {
+    document.getElementById('pwError').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+  }
+}
+
+function unlock() {
+  document.getElementById('passwordOverlay').style.display = 'none';
+  sessionStorage.setItem('hedge_unlocked', '1');
+}
+
+// 自动解锁（同一标签页内不用重复输密码）
+if (sessionStorage.getItem('hedge_unlocked') === '1') {
+  unlock();
+}
+
+// 回车键触发
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pwInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkPassword();
+  });
 });
 
 // ====== PWA: SERVICE WORKER ======
